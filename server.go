@@ -207,10 +207,10 @@ func (s *Server) serveRequest(codec ServerCodec, singleShot bool, options CodecO
 	// test if the server is ordered to stop
 	for s.isRunning() {
 		reqs, batch, err := s.readRequest(codec)
+		log.Debug("Recieved new request", "reqs size", len(reqs))
 		if err != nil {
 			// If a parsing error occurred, send an error
 			if err.Error() != "EOF" {
-				log.Debug(fmt.Sprintf("read error %v\n", err))
 				codec.Write(codec.CreateErrorResponse(nil, err))
 			}
 			// Error or end of stream, wait for requests and tear down
@@ -261,7 +261,6 @@ func (s *Server) ServeSingleRequest(codec ServerCodec, options CodecOption) {
 // close all codecs which will cancel pending requests/subscriptions.
 func (s *Server) Stop() {
 	if atomic.CompareAndSwapInt32(&s.run, 1, 0) {
-		log.Debug("RPC Server shutdown initiatied")
 		s.codecsMu.Lock()
 		defer s.codecsMu.Unlock()
 		s.codecs.Each(func(c interface{}) bool {
