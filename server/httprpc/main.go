@@ -107,21 +107,29 @@ func serveRpc(c *cli.Context) error {
 	return nil
 }
 
+func shutdown() {
+	if server != nil {
+		sigchan := make(chan os.Signal, 1)
+		signal.Notify(sigchan, os.Interrupt)
+		log.Info("Receive exit signal.", "singal", <-sigchan)
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		server.httpServer.Shutdown(ctx)
+
+		server.handler.Stop()
+		log.Info("RPC Server gracefully stopped")
+	}
+}
+
 func main() {
 	app := cli.NewApp()
-	app.Name = "http rpc server"
+	app.Name = "sample http rpc server"
 	app.Flags = []cli.Flag{RPCListenAddrFlag, RPCPortFlag, RPCCORSDomainFlag, RPCVirtualHostsFlag}
 	app.Action = serveRpc
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Error("Error", err)
 	}
-	sigchan := make(chan os.Signal, 1)
-	signal.Notify(sigchan, os.Interrupt)
-	log.Info("Receive exit signal.", "singal", <-sigchan)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	server.httpServer.Shutdown(ctx)
-	server.handler.Stop()
-	log.Info("RPC Server gracefully stopped")
+	shutdown()
 }
