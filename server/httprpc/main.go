@@ -111,7 +111,8 @@ func shutdown() {
 	if server != nil {
 		sigchan := make(chan os.Signal, 1)
 		signal.Notify(sigchan, os.Interrupt)
-		log.Info("Receive exit signal.", "singal", <-sigchan)
+		defer signal.Stop(sigchan)
+		log.Info("Got interrupt, shutting down...", "singal", <-sigchan)
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
